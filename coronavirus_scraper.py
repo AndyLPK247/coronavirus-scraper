@@ -2,6 +2,7 @@
 # Imports
 # --------------------------------------------------------------------------------
 
+import datetime
 import json
 import selenium.webdriver
 import time
@@ -28,12 +29,13 @@ def init_webdriver():
 
 class CoronavirusData:
 
-  def __init__(self, timestamp=0, confirm=0, suspect=0, cure=0, dead=0):
-    self.timestamp = timestamp
+  def __init__(self, updated=0, confirm=0, suspect=0, cure=0, dead=0, timestamp=None):
+    self.updated = updated
     self.confirm = confirm
     self.suspect = suspect
     self.cure = cure
     self.dead = dead
+    self.timestamp = datetime.datetime.utcnow() if not timestamp else timestamp
   
   def is_different_from(self, other):
     return \
@@ -44,7 +46,8 @@ class CoronavirusData:
   
   def __str__(self):
     return json.dumps({
-      'timestamp': self.timestamp,
+      'timestamp': str(self.timestamp),
+      'updated': self.updated,
       'confirm': self.confirm,
       'suspect': self.suspect,
       'cure': self.cure,
@@ -67,7 +70,7 @@ class QQCoronavirusPage:
 
   URL = 'https://news.qq.com//zt2020/page/feiyan.htm'
 
-  TIMESTAMP = (By.XPATH, '//div[contains(@class, "topdataWrap")]//div[contains(@class, "timeNum")]//span[contains(., "2020")]')
+  UPDATED = (By.XPATH, '//div[contains(@class, "topdataWrap")]//div[contains(@class, "timeNum")]//span[contains(., "2020")]')
   CONFIRM = (By.XPATH, xpath_number.__func__('confirm'))
   SUSPECT = (By.XPATH, xpath_number.__func__('suspect'))
   CURE = (By.XPATH, xpath_number.__func__('cure'))
@@ -79,8 +82,8 @@ class QQCoronavirusPage:
   def load(self):
     self.browser.get(self.URL)
 
-  def get_timestamp(self):
-    return browser.find_element(*self.TIMESTAMP).text
+  def get_updated(self):
+    return browser.find_element(*self.UPDATED).text
 
   def get_confirm(self):
     return browser.find_element(*self.CONFIRM).text
@@ -96,7 +99,7 @@ class QQCoronavirusPage:
   
   def get_latest_data(self):
     return CoronavirusData(
-      self.get_timestamp(),
+      self.get_updated(),
       self.get_confirm(),
       self.get_suspect(),
       self.get_cure(),
@@ -104,7 +107,7 @@ class QQCoronavirusPage:
     )
   
   def take_screenshot(self):
-    name = self.get_timestamp().replace(':', '')
+    name = self.get_updated().replace(':', '')
     self.browser.save_screenshot(f'{name}.png')
 
 
@@ -140,7 +143,7 @@ if __name__ == '__main__':
       data = page.get_latest_data()
       append_log(FULL_LOG, data)
 
-      if (data.is_different_from(previous)):
+      if data.is_different_from(previous):
         print(data)
         append_log(CHANGES_LOG, data)
         page.take_screenshot()
